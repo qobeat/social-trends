@@ -1,0 +1,445 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/qobeat/social-trends/schemas/trend-record.schema.json",
+  "title": "Social Trends JSONL Record",
+  "description": "Validate each non-empty JSONL line independently.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_type",
+    "record_id",
+    "run_id",
+    "task_id",
+    "collected_at",
+    "window",
+    "collector"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "record_type": {
+      "enum": [
+        "run_start",
+        "trend_observation",
+        "source_status",
+        "run_end"
+      ]
+    },
+    "record_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._:/-]{7,199}$"
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^(public|github)-[0-9]{8}T[0-9]{6}Z$"
+    },
+    "task_id": {
+      "enum": [
+        "public-trends-v1",
+        "github-trends-v1"
+      ]
+    },
+    "collected_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "window": {
+      "$ref": "#/$defs/window"
+    },
+    "collector": {
+      "$ref": "#/$defs/collector"
+    },
+    "run_config": {
+      "$ref": "#/$defs/runConfig"
+    },
+    "source": {
+      "$ref": "#/$defs/source"
+    },
+    "trend": {
+      "$ref": "#/$defs/trend"
+    },
+    "source_result": {
+      "$ref": "#/$defs/sourceResult"
+    },
+    "summary": {
+      "$ref": "#/$defs/summary"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "run_start"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "run_config"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "trend_observation"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "source",
+          "trend"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "source_status"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "source",
+          "source_result"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "run_end"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "summary"
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "end",
+        "lookback_hours"
+      ],
+      "properties": {
+        "start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "lookback_hours": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 168
+        }
+      }
+    },
+    "collector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface",
+        "tools"
+      ],
+      "properties": {
+        "surface": {
+          "const": "chatgpt-scheduled-task"
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 100
+        },
+        "tools": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "web_search",
+              "github_app"
+            ]
+          }
+        }
+      }
+    },
+    "runConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_geo",
+        "source_ids"
+      ],
+      "properties": {
+        "target_geo": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "source_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_-]{1,63}$"
+          }
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "platform",
+        "source_name",
+        "source_url",
+        "access_method",
+        "scope"
+      ],
+      "properties": {
+        "source_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]{1,63}$"
+        },
+        "platform": {
+          "enum": [
+            "google_trends",
+            "tiktok",
+            "youtube",
+            "reddit",
+            "hacker_news",
+            "bluesky",
+            "mastodon",
+            "github"
+          ]
+        },
+        "source_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "source_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "access_method": {
+          "enum": [
+            "web_search",
+            "public_page",
+            "public_json",
+            "github_app"
+          ]
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        }
+      }
+    },
+    "trend": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "topic",
+        "native_rank",
+        "trend_state",
+        "item_url",
+        "native_metrics",
+        "freshness",
+        "coverage"
+      ],
+      "properties": {
+        "topic": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "canonical_topic": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 500
+        },
+        "native_rank": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "trend_state": {
+          "enum": [
+            "new",
+            "rising",
+            "stable",
+            "falling",
+            "reentered",
+            "unknown"
+          ]
+        },
+        "item_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "native_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 300
+        },
+        "published_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "native_metrics": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "integer",
+              "boolean",
+              "null"
+            ]
+          }
+        },
+        "raw_label": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 1000
+        },
+        "freshness": {
+          "enum": [
+            "within_window",
+            "source_window_broader",
+            "timestamp_unknown",
+            "stale"
+          ]
+        },
+        "coverage": {
+          "enum": [
+            "platform",
+            "country",
+            "category",
+            "instance",
+            "community",
+            "query_sample",
+            "unknown"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "maxLength": 300
+          }
+        }
+      }
+    },
+    "sourceResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "item_count"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "ok",
+            "partial",
+            "blocked",
+            "error",
+            "no_data",
+            "stale"
+          ]
+        },
+        "item_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "http_status": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 100,
+          "maximum": 599
+        },
+        "message": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 1000
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_count",
+        "source_ok_count",
+        "observation_count",
+        "output_path",
+        "validation_status"
+      ],
+      "properties": {
+        "source_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source_ok_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "observation_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "output_path": {
+          "type": "string",
+          "pattern": "^data/(public|github)/[0-9]{4}/[0-9]{2}/[0-9]{2}/(public|github)-[0-9]{8}T[0-9]{6}Z[.]jsonl$"
+        },
+        "validation_status": {
+          "enum": [
+            "passed",
+            "failed",
+            "not_available"
+          ]
+        }
+      }
+    }
+  }
+}
