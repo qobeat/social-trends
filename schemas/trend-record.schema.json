@@ -389,6 +389,10 @@
           "type": "integer",
           "minimum": 0
         },
+        "consecutive_unhealthy_runs": {
+          "type": "integer",
+          "minimum": 0
+        },
         "http_status": {
           "type": [
             "integer",
