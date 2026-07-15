@@ -177,6 +177,7 @@
           "items": {
             "enum": [
               "web_search",
+              "public_browser",
               "github_app"
             ]
           }
