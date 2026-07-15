@@ -41,7 +41,8 @@ Use only:
 3. Connected **GitHub App**:
    - `github_search_repositories` for structured thematic discovery;
    - `github_get_repo` to verify selected repositories;
-   - `github_fetch_file` to read the schema and verify the snapshot;
+   - `github_fetch_file` to read the schema, the immediately prior confirmed
+     snapshot, and the newly created snapshot;
    - `github_create_file` to create the immutable JSONL snapshot.
 
 Do not use unofficial GitHub Trending APIs as primary evidence. Do not use shell,
@@ -68,6 +69,25 @@ GitHub's native daily/weekly trends are broader than three hours. Preserve their
 native window and use `freshness = source_window_broader`. The hourly snapshots
 allow later calculation of three-hour rank changes.
 
+### Prior-state baseline
+
+1. From the immediately prior task-run context, obtain the exact path of the last
+   snapshot whose upload and read-back were confirmed.
+2. Fetch that exact path from `main` with `github_fetch_file`. Do not guess a
+   path or substitute a non-immediate older snapshot.
+3. If no exact prior path is available or read-back fails, record that
+   comparison is unavailable and use `trend_state = unknown` for comparisons
+   that require it. This does not block collection of the current snapshot.
+4. For each source, set
+   `source_result.consecutive_unhealthy_runs`:
+   - if current status is `blocked` or `stale` and the immediately prior
+     status is also `blocked` or `stale`, increment the prior value;
+   - if the prior record predates this field, start at `1` rather than
+     reconstructing a count from memory;
+   - if current status is `blocked` or `stale` after a healthy or unavailable
+     baseline, set it to `1`;
+   - otherwise set it to `0`.
+
 ### Schema and output path
 
 Before collection, fetch from `main`:
@@ -84,8 +104,9 @@ Create one immutable file:
 
 1. Set `search_cutoff_date` to the UTC calendar date seven days before
    `window.end`, formatted `YYYY-MM-DD`.
-2. Execute every configured thematic `query_id` in its listed order. Replace
-   `<search_cutoff_date>` literally and append
+2. Execute every configured thematic `query_id` in its listed order, requesting
+   at most five results from each query. Replace `<search_cutoff_date>`
+   literally and append
    `pushed:>=<search_cutoff_date> archived:false fork:false`.
 3. Do not put `sort:updated` or any other undocumented sorting token inside a
    search query.
@@ -314,7 +335,8 @@ Compare source health with the immediately prior snapshot:
 - a source-health event is material when `ok` or `partial` changes to
   `blocked` or `stale`;
 - recovery from `blocked` or `stale` to `ok` or `partial` is material;
-- on the first comparable run with a blocked source, notify once;
+- when no prior baseline exists, notify once if the current source is blocked
+  or stale;
 - do not notify merely because `blocked` or `stale` remains unchanged;
 - for an uninterrupted failure, send at most one escalation at six consecutive
   failed runs and one additional reminder at each multiple of 24 runs.
