@@ -11,9 +11,10 @@ emotion analysis are deferred to a later version.
 - [GitHub trends task](instructions/github-trends-task.md)
 
 Both tasks use only sources that a ChatGPT Scheduled Task can access through
-public Web Search/pages or the connected GitHub App. A missing or blocked source
-is recorded as a `source_status` JSONL record; the task must not fabricate or
-silently substitute platform-wide data.
+public Web Search/pages, a guarded unauthenticated public Browser fallback when
+the exact page is otherwise only a loading shell, or the connected GitHub App.
+A missing or blocked source is recorded as a `source_status` JSONL record; the
+task must not fabricate or silently substitute platform-wide data.
 
 ## Storage model
 
@@ -51,9 +52,12 @@ Public/social task:
 
 GitHub task:
 
-- GitHub Trending/Explore through Web Search;
+- GitHub Trending/Explore through Web Search, with an exact-URL public Browser
+  fallback only for loading shells;
 - connected GitHub App repository search and repository metadata;
-- GitHub public repository pages for verification.
+- GitHub public repository pages for verification;
+- transition-based source-health notifications, so an unchanged blocked source
+  is stored every run but is not reported every hour.
 
 Facebook, Instagram, Threads, platform-wide X, Pinterest, Discord, and Telegram
 are excluded from v1 because a Scheduled Task does not have a reproducible,
