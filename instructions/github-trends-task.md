@@ -30,15 +30,23 @@ or collection/storage failures.
 
 Use only:
 
-1. **Web Search** to open public GitHub Trending/Explore pages.
-2. Connected **GitHub App**:
+1. **Web Search** to open public GitHub Trending/Explore pages and exact public
+   GitHub repository pages.
+2. A public **Browser renderer**, only as a fallback for the exact GitHub URL
+   when Web Search returns a page shell such as `Loading` without repository
+   entries. The fallback must be unauthenticated: do not log in, accept or set
+   cookies, navigate to a substitute page, or change the requested language or
+   native window. If the Browser renderer is unavailable, record that limitation
+   and continue; its absence is not a global task failure.
+3. Connected **GitHub App**:
    - `github_search_repositories` for structured thematic discovery;
    - `github_get_repo` to verify selected repositories;
    - `github_fetch_file` to read the schema and verify the snapshot;
    - `github_create_file` to create the immutable JSONL snapshot.
 
 Do not use unofficial GitHub Trending APIs as primary evidence. Do not use shell,
-local git, browser login, API keys, cookies, webhooks, or hidden endpoints.
+local git, browser login, API keys, stored cookies, webhooks, mirrors, cached
+substitutes, or hidden endpoints.
 
 Never use `github_update_file` or `github_delete_file` under `data/`.
 
@@ -72,6 +80,29 @@ Create one immutable file:
 
 `data/github/YYYY/MM/DD/github-YYYYMMDDTHHMMSSZ.jsonl`
 
+### Stable thematic-query contract
+
+1. Set `search_cutoff_date` to the UTC calendar date seven days before
+   `window.end`, formatted `YYYY-MM-DD`.
+2. Execute every configured thematic `query_id` in its listed order. Replace
+   `<search_cutoff_date>` literally and append
+   `pushed:>=<search_cutoff_date> archived:false fork:false`.
+3. Do not put `sort:updated` or any other undocumented sorting token inside a
+   search query.
+4. Treat the rank returned by one GitHub search call as native only to that
+   `query_id`. Store `search_query_id`, the exact rendered `search_query`,
+   `search_result_rank`, and `search_cutoff_date` in `native_metrics`.
+5. Within a thematic source, retain observations in configured `query_id`
+   order and then returned search rank. Deduplicate by canonical repository URL,
+   keeping the first occurrence, and cap the retained source sample at 10.
+   Record `native_rank = search_result_rank`; record IDs remain sequential and
+   must not be presented as native ranks.
+6. Never round-robin or otherwise merge several result lists into a synthetic
+   native ranking.
+7. Rank/trend comparisons require the same source ID, `query_id`, rendered
+   cutoff date, and native metric. When the rolling cutoff date changes, use
+   `trend_state = unknown` until comparable evidence exists.
+
 ### Configured source registry
 
 Attempt every source/query on every run. Preserve duplicate repositories across
@@ -81,7 +112,11 @@ different sources because each source represents a distinct signal.
 
 - source_id: `github_trending_daily`
 - URL: `https://github.com/trending?since=daily`
-- Method: Web Search/public page.
+- Method: Web Search/public page. If the exact response contains only a page
+  shell such as `Loading`, make one attempt with the public Browser renderer
+  on the same exact URL. If neither method exposes repository entries, record
+  the source as `blocked`; do not substitute a language-filtered page, mirror,
+  cache, or different native window.
 - Capture the first 20 repositories in native order.
 - Capture repository full name, URL, rank, description, language, total stars,
   forks, current-period stars, and built-by handles only when exposed.
@@ -92,7 +127,8 @@ different sources because each source represents a distinct signal.
 
 - source_id: `github_trending_weekly`
 - URL: `https://github.com/trending?since=weekly`
-- Method: Web Search/public page.
+- Method: Web Search/public page. Apply the same one-attempt exact-URL public
+  Browser fallback and no-substitution rule as the daily source.
 - Capture the first 20 repositories in native order.
 - Store `native_metrics.native_window = weekly`.
 - Use `coverage = platform` and `freshness = source_window_broader`.
@@ -101,53 +137,55 @@ different sources because each source represents a distinct signal.
 
 - source_id: `github_search_agents`
 - Method: `github_search_repositories`.
-- Search query should combine current repository-search qualifiers with:
-  `AI agent`, `agentic workflow`, `deterministic agent`, `multi-agent`,
-  `MCP`, and `agent orchestration`.
-- Prefer repositories created or materially pushed in the last seven days.
-- Retrieve at most 10 candidates.
+- query_id `agents_core`:
+  `"AI agent" OR "agentic workflow" OR "deterministic agent"`
+- query_id `agents_protocols`:
+  `"multi-agent" OR MCP OR "agent orchestration"`
+- Retain at most 10 candidates across both fixed queries.
 - Set `coverage = query_sample`.
 
 #### 4. AI coding and software lifecycle
 
 - source_id: `github_search_ai_sdlc`
 - Method: `github_search_repositories`.
-- Search for `agentic coding`, `coding agent`, `AI code review`,
-  `AI testing`, `software architecture AI`, `AI ops`, and `SDLC agent`.
-- Prefer repositories created or pushed in the last seven days.
-- Retrieve at most 10 candidates.
+- query_id `ai_sdlc_coding`:
+  `"agentic coding" OR "coding agent" OR "AI code review" OR "AI testing"`
+- query_id `ai_sdlc_ops`:
+  `"software architecture AI" OR "AI ops" OR "SDLC agent"`
+- Retain at most 10 candidates across both fixed queries.
 - Set `coverage = query_sample`.
 
 #### 5. Local LLM and private AI
 
 - source_id: `github_search_local_ai`
 - Method: `github_search_repositories`.
-- Search for `local LLM`, `Ollama`, `llama.cpp`, `local inference`,
-  `RTX 3090`, `RAG`, and `private AI`.
-- Prefer repositories created or pushed in the last seven days.
-- Retrieve at most 10 candidates.
+- query_id `local_ai_runtime`:
+  `"local LLM" OR Ollama OR "llama.cpp" OR "local inference"`
+- query_id `local_ai_private`:
+  `"RTX 3090" OR RAG OR "private AI"`
+- Retain at most 10 candidates across both fixed queries.
 - Set `coverage = query_sample`.
 
 #### 6. AI education and science tools
 
 - source_id: `github_search_education_science`
 - Method: `github_search_repositories`.
-- Search for `AI education`, `SAT`, `ACT practice`, `STEM education`,
-  `research agent`, `arXiv agent`, `scientific discovery`, and
-  `bioinformatics AI`.
-- Prefer repositories created or pushed in the last seven days.
-- Retrieve at most 10 candidates.
+- query_id `education_core`:
+  `"AI education" OR SAT OR "ACT practice" OR "STEM education"`
+- query_id `science_agents`:
+  `"research agent" OR "arXiv agent" OR "scientific discovery" OR "bioinformatics AI"`
+- Retain at most 10 candidates across both fixed queries.
 - Set `coverage = query_sample`.
 
 #### 7. Solo-founder business software
 
 - source_id: `github_search_solo_business`
 - Method: `github_search_repositories`.
-- Search for `vertical SaaS`, `micro SaaS`, `solo founder`,
-  `business automation`, `HOA management`, `property management AI`, and
-  `workflow automation`.
-- Prefer repositories created or pushed in the last seven days.
-- Retrieve at most 10 candidates.
+- query_id `solo_saas`:
+  `"vertical SaaS" OR "micro SaaS" OR "solo founder"`
+- query_id `business_automation`:
+  `"business automation" OR "HOA management" OR "property management AI" OR "workflow automation"`
+- Retain at most 10 candidates across both fixed queries.
 - Set `coverage = query_sample`.
 
 ### Repository verification
@@ -156,7 +194,9 @@ Use `github_get_repo` for:
 
 - the top 10 daily Trending repositories;
 - any repository newly entering the top 10 compared with the prior task run;
-- the top 3 candidates from each thematic search;
+- the top 3 retained candidates from each thematic source, selected
+  deterministically in configured query order and native search rank;
+- every repository evaluated for a cross-group material notification;
 - any repository selected for the user notification.
 
 If verification fails, retain the public-page observation only when its URL and
@@ -172,7 +212,10 @@ For each repository:
 - `item_url`: canonical repository URL;
 - `native_id`: GitHub repository numeric ID when returned, otherwise `null`;
 - `native_rank`: native Trending rank or search-result rank;
-- `raw_label`: repository description, maximum 1,000 characters;
+- `raw_label`: repository description, maximum 1,000 characters. Prefer the
+  GitHub App value. If the App omits it, use an exact public repository page via
+  Web Search or the guarded public Browser fallback only when the description is
+  explicitly visible; otherwise use `null`;
 - `native_metrics`: only native values actually returned, such as:
   - `language`;
   - `stars_total`;
@@ -183,10 +226,17 @@ For each repository:
   - `updated_at`;
   - `pushed_at`;
   - `native_window`;
-  - `search_query`.
+  - `search_query_id`;
+  - `search_query`;
+  - `search_result_rank`;
+  - `search_cutoff_date`.
 
 Do not treat `updated_at` as code activity when only metadata changed. Prefer
-`pushed_at` or verified commits when available.
+`pushed_at` or verified commits when available. Missing descriptions or
+activity metrics are a coverage limitation, not permission to infer purpose or
+acceleration from a repository name. If core identity and URL are verified,
+retain the observation with the missing fields omitted or null and add a clear
+limitation.
 
 ### Trend state
 
@@ -200,8 +250,9 @@ Use a directional state only when directly supported:
   and now present again;
 - `unknown`: no directly comparable prior evidence.
 
-Comparisons must use the same source ID, query, native window, and metric.
-Do not infer acceleration from total stars alone.
+Comparisons must use the same source ID, `search_query_id`, exact rendered
+query including cutoff date, native window, and metric. Do not infer
+acceleration from total stars, repository names, or result-set churn alone.
 
 ### JSONL construction
 
@@ -234,7 +285,8 @@ or private-repository data. This task collects public trend metadata only.
 4. If a JSON Schema validator is actually available, validate every line and use
    `validation_status = passed` only after success.
 5. Otherwise perform structural checks and use
-   `validation_status = not_available`.
+   `validation_status = not_available`. This is a recorded capability
+   limitation, not a validation failure, when all structural checks pass.
 6. Do not upload malformed JSONL.
 
 ### GitHub upload
@@ -257,17 +309,36 @@ upload succeeded.
 
 Always save the raw snapshot when collection and GitHub write tools work.
 
+Compare source health with the immediately prior snapshot:
+
+- a source-health event is material when `ok` or `partial` changes to
+  `blocked` or `stale`;
+- recovery from `blocked` or `stale` to `ok` or `partial` is material;
+- on the first comparable run with a blocked source, notify once;
+- do not notify merely because `blocked` or `stale` remains unchanged;
+- for an uninterrupted failure, send at most one escalation at six consecutive
+  failed runs and one additional reminder at each multiple of 24 runs.
+
 Notify Alex in Russian only when at least one is true:
 
 - a repository newly enters the daily top 10;
 - a repository moves at least five daily ranks;
-- a new relevant repository appears in at least two independent source/query
-  groups;
+- a new relevant repository is present in at least two independent thematic
+  source groups in both the current and immediately prior comparable run, and
+  verified description, topics, or activity metadata confirms relevance;
 - a repository relevant to ADOS, agentic coding, local LLMs, kids education,
   frontier science, HOA/property automation, or solo-founder software shows a
-  confirmed material acceleration;
-- a configured source becomes blocked or stale;
-- JSONL validation, GitHub upload, or read-back verification fails.
+  confirmed material acceleration based on directly comparable evidence;
+- a configured source has a material health transition or reaches one of the
+  failure-reminder thresholds above;
+- actual JSONL validation fails, or GitHub upload/read-back verification fails.
+
+The following are not material by themselves:
+
+- no repository appears in two thematic groups;
+- thematic result-set or rank churn without comparable query evidence;
+- `validation_status = not_available` when structural validation passes;
+- an unchanged source limitation already reported in the prior run.
 
 The notification must include:
 
@@ -275,7 +346,9 @@ The notification must include:
 - repository, observed change, and why it matters;
 - confirmed facts separated from inference;
 - direct GitHub URLs;
-- source/query coverage limitations;
+- source/query coverage limitations relevant to the material event;
 - snapshot path and upload verification.
 
-Do not include sentiment in version 1.
+If no material condition exists and storage succeeds, emit no user-facing
+notification. Keep unchanged limitations in the raw JSONL rather than repeating
+them hourly. Do not include sentiment in version 1.
