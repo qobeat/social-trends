@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/qobeat/social-trends/schemas/collector-diagnostic.schema.json",
+  "title": "Collector Diagnostic Record",
+  "description": "One sanitized immutable diagnostic record for a failed scheduled collector run.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "diagnostic_id",
+    "task_id",
+    "source_id",
+    "occurred_at",
+    "stage",
+    "outcome",
+    "error_code",
+    "message",
+    "retryable",
+    "tool",
+    "instruction_path",
+    "instruction_sha",
+    "snapshot_path",
+    "last_successful_stage",
+    "redacted"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "diagnostic_id": {
+      "type": "string",
+      "pattern": "^reddit-[0-9]{8}T[0-9]{6}Z$"
+    },
+    "task_id": {
+      "const": "reddit-trends-collector"
+    },
+    "source_id": {
+      "const": "reddit_popular_us"
+    },
+    "run_id": {
+      "type": ["string", "null"],
+      "pattern": "^public-[0-9]{8}T[0-9]{6}Z$"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "stage": {
+      "enum": [
+        "bootstrap",
+        "instruction_fetch",
+        "schema_fetch",
+        "prior_snapshot_lookup",
+        "source_fetch_popular",
+        "source_fetch_rising",
+        "snapshot_build",
+        "validation",
+        "snapshot_write",
+        "readback",
+        "completion"
+      ]
+    },
+    "outcome": {
+      "enum": ["blocked", "error", "partial"]
+    },
+    "error_code": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{2,63}$"
+    },
+    "message": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "retryable": {
+      "type": "boolean"
+    },
+    "tool": {
+      "enum": ["web_search", "github_app", "scheduler", "unknown"]
+    },
+    "instruction_path": {
+      "const": "instructions/public-source-reddit.md"
+    },
+    "instruction_sha": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "snapshot_path": {
+      "type": ["string", "null"],
+      "pattern": "^data/public/[0-9]{4}/[0-9]{2}/[0-9]{2}/public-[0-9]{8}T[0-9]{6}Z[.]jsonl$"
+    },
+    "last_successful_stage": {
+      "type": ["string", "null"],
+      "maxLength": 100
+    },
+    "http_status": {
+      "type": ["integer", "null"],
+      "minimum": 100,
+      "maximum": 599
+    },
+    "redacted": {
+      "const": true
+    }
+  }
+}
