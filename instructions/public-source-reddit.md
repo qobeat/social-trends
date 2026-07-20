@@ -14,7 +14,7 @@ produce a general news digest or sentiment analysis.
   source-native signal is confirmed.
 - Never spend tokens expanding into background research, unrelated news, or
   explanations of unchanged items.
-- Use Russian only for a material alert.
+- Use Russian only for a material alert or failure diagnostic.
 
 ### Allowed tools
 
@@ -58,6 +58,57 @@ Use only metadata exposed by the source. Never invent rank, timestamps, volume,
 score, comments, trend direction, or IDs. Deduplicate within this source by
 normalized item URL plus topic.
 
+### Diagnostic and failure contract
+
+Track the current stage and the last successfully completed stage using exactly
+these stage names:
+
+`bootstrap`, `instruction_fetch`, `schema_fetch`,
+`prior_snapshot_lookup`, `source_fetch_popular`,
+`source_fetch_rising`, `snapshot_build`, `validation`,
+`snapshot_write`, `readback`, `completion`.
+
+Handle failures deterministically:
+
+1. Fetch the Popular and Rising pages independently. Failure of one page must
+   not prevent trying the other page.
+2. A source page that is blocked, inaccessible, empty, or not reproducibly
+   parseable is source data, not an unhandled task exception.
+3. If at least one page works, write a normal snapshot with
+   `source_result.status = partial`.
+4. If neither page works, still write a zero-observation normal snapshot when a
+   schema-valid snapshot can be built. Use `blocked` for access denial and
+   `error` for a tool/runtime failure. Put a compact sanitized diagnostic in
+   `source_result.message`:
+   `stage=<stage>; code=<error_code>; retryable=<true|false>; detail=<summary>`.
+   Keep it within the schema's 1000-character limit.
+5. Missing scores, comment counts, ages, ranks, or HTTP status values are not
+   task failures. Omit unavailable optional values and never invent them.
+6. A hard failure is one that prevents a valid normal snapshot or its verified
+   storage: instruction/schema failure, snapshot-build failure, malformed
+   JSONL, validation failure, collision, GitHub write failure, or read-back
+   mismatch.
+7. On a hard failure, if the GitHub App is still usable, fetch
+   `schemas/collector-diagnostic.schema.json` and create exactly one
+   immutable diagnostic JSON file:
+   `data/diagnostics/reddit/YYYY/MM/DD/reddit-YYYYMMDDTHHMMSSZ.json`.
+   Commit message:
+   `diagnostic(reddit): add reddit-YYYYMMDDTHHMMSSZ`.
+8. The diagnostic object must conform to that schema and contain the run ID when
+   known, failing stage, stable error code, concise message, retryability, tool,
+   fetched instruction SHA when known, intended or created snapshot path, last
+   successful stage, exposed HTTP status when known, and `redacted = true`.
+9. Sanitize diagnostics. Never store prompts, raw page bodies, response headers,
+   stack traces, cookies, tokens, credentials, private repository data, personal
+   data, or full raw tool output. Limit the message to the minimum needed to
+   identify the failing boundary.
+10. Do not recursively create another diagnostic if diagnostic creation fails.
+    Notify Alex that both the primary operation and diagnostic write failed.
+11. A failure notification must state: New York timestamp, run ID if known,
+    failed stage, error code, last successful stage, whether a normal snapshot
+    was written, diagnostic path/URL if written, and the smallest safe next
+    action. Do not replace this with a generic success or no-update message.
+
 ### Source
 
 - URLs:
@@ -83,7 +134,8 @@ Notify only for:
   exposed score increase of at least 100%;
 - a material source-health transition, first blocked/stale baseline, the sixth
   consecutive unhealthy run, or each multiple of 24 unhealthy runs;
-- malformed JSONL, collision, upload failure, or read-back mismatch.
+- malformed JSONL, collision, upload failure, read-back mismatch, or any hard
+  failure covered by the diagnostic contract.
 
 Do not notify for ordinary list churn, a repeated item, a rising label alone, or
 `validation_status = not_available`.
