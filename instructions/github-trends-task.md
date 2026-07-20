@@ -212,25 +212,77 @@ different sources because each source represents a distinct signal.
   coverage unless verified repository metadata independently proves that use
   case.
 
-#### 8. HOA and property-management software
+#### 8. Alex project application tools
 
-- source_id: `github_search_hoa_property`
+- source_id: `github_search_alex_project_apps`
 - Method: `github_search_repositories`.
-- query_id `hoa_management`:
-  `"HOA management" OR "homeowners association" OR "community association management" OR "condominium management"`
-- query_id `property_management_software`:
-  `"property management software" OR "property management AI" OR "condo management software" OR "resident portal"`
-- Execute both queries independently with the same rolling cutoff and common
-  qualifiers as every other thematic query.
-- Retain at most 10 candidates across both fixed queries.
+- Execute every query independently with the shared rolling cutoff and common
+  qualifiers. Request at most 2 results per query and retain at most 20
+  deduplicated candidates in configured query order.
+- query_id `offline_trader_analytics`:
+  `"broker export" OR "trade journal" OR "portfolio analytics" OR "closed trades" OR "swing trading analytics"`
+- query_id `sat_psat_act_prep`:
+  `"SAT prep" OR "PSAT prep" OR "ACT prep" OR "test preparation app"`
+- query_id `high_school_projects`:
+  `"high school project" OR "student research project" OR "science fair" OR "student portfolio app"`
+- query_id `niche_web_business_apps`:
+  `"small business app" OR "business dashboard" OR "client portal" OR "vertical SaaS"`
+- query_id `soundcloud_analytics`:
+  `"SoundCloud API" analytics OR "SoundCloud stats" OR "SoundCloud plays" OR "SoundCloud scraper"`
+- query_id `youtube_osint`:
+  `"YouTube metadata" OR "YouTube channel analysis" OR "YouTube comment scraper" OR "YouTube transcript analysis"`
+- query_id `social_network_osint`:
+  `"social media OSINT" OR "social graph OSINT" OR "username investigation" OR "social network analysis"`
+- query_id `crypto_trading_tools`:
+  `"crypto trading analytics" OR "crypto trade journal" OR "crypto market scanner" OR "algorithmic crypto trading"`
+- query_id `osint_tools`:
+  `"OSINT toolkit" OR "OSINT framework" OR "digital investigation" OR "open source intelligence"`
+- query_id `hoa_property_software`:
+  `"HOA management" OR "homeowners association" OR "property management software" OR "resident portal"`
 - Set `coverage = query_sample`.
-- A successful query returning zero repositories is `no_data`, not
-  `blocked`. Preserve the zero count without substituting broad workflow
-  automation results.
-- Before treating a repository as an HOA/property signal, use
-  `github_get_repo` and require an explicitly relevant description, topics,
-  or other returned repository metadata. A keyword-only name match is
-  insufficient.
+- Store `native_metrics.project_area = <query_id>`.
+- Do not copy or expose metadata, files, holdings, orders, strategies, or other
+  content from Alex's private repositories. The snapshot contains only public
+  candidate-repository metadata returned by the configured discovery query.
+
+#### 9. AI runtime, evaluation, and development automation
+
+- source_id: `github_search_ai_dev_tools`
+- Method: `github_search_repositories`.
+- Execute every query independently with the shared rolling cutoff and common
+  qualifiers. Request at most 2 results per query and retain at most 16
+  deduplicated candidates in configured query order.
+- query_id `ai_agent_runtime`:
+  `"AI agent runtime" OR "agent runtime framework" OR "LLM agent runtime" OR "agent execution runtime"`
+- query_id `ai_evals`:
+  `"AI evals" OR "LLM evals" OR "agent evaluation" OR "evaluation harness"`
+- query_id `adlc_agents`:
+  `"agent development lifecycle" OR "agentic SDLC" OR "SDLC agent" OR "development lifecycle agent"`
+- query_id `subagent_automation`:
+  `"subagent automation" OR "sub-agent orchestration" OR "agent delegation" OR "multi-agent development"`
+- query_id `codex_dev_automation`:
+  `"Codex CLI" OR "OpenAI Codex" OR "Codex automation" OR "Codex skill"`
+- query_id `cursor_dev_automation`:
+  `"Cursor automation" OR "Cursor rules" OR "Cursor MCP" OR "Cursor plugin"`
+- query_id `claude_dev_automation`:
+  `"Claude Code plugin" OR "Claude Code skill" OR "Claude Code hook" OR "Claude Code MCP"`
+- query_id `mcp_plugins_skills_apps`:
+  `"MCP server" OR "agent skill" OR "AI plugin" OR "agent app"`
+- Set `coverage = query_sample`.
+- Store `native_metrics.project_area = <query_id>`.
+
+For sources 8 and 9:
+
+- a successful individual query returning zero repositories is a valid empty
+  query result, not a blocked source;
+- use source status `partial` when at least one query succeeds but another
+  query fails; use `no_data` only when every query succeeds and all return
+  zero retained candidates;
+- preserve per-query rank and query identity; never let early query results
+  suppress execution of later project areas;
+- before a project-specific material notification, verify the candidate and
+  require an explicitly relevant public description, topics, or other returned
+  metadata. A keyword-only name match is insufficient.
 
 ### Repository verification
 
@@ -371,9 +423,13 @@ Notify Alex in Russian only when at least one is true:
 - a new relevant repository is present in at least two independent thematic
   source groups in both the current and immediately prior comparable run, and
   verified description, topics, or activity metadata confirms relevance;
-- a repository relevant to ADOS, agentic coding, local LLMs, kids education,
-  frontier science, HOA/property automation, or solo-founder software shows a
-  confirmed material acceleration based on directly comparable evidence;
+- a repository relevant to ADOS, agentic coding, local LLMs, AI runtimes or
+  evals, ADLC/SDLC agents, subagent automation, Codex/Cursor/Claude development
+  automation, MCP/plugins/skills/apps, offline trader analytics, SAT/PSAT/ACT
+  preparation, high-school projects, niche web business apps, SoundCloud or
+  YouTube analytics, social-network OSINT, crypto trading, general OSINT,
+  HOA/property automation, or solo-founder software shows confirmed material
+  acceleration based on directly comparable evidence;
 - a configured source has a material health transition or reaches one of the
   failure-reminder thresholds above;
 - actual JSONL validation fails, or GitHub upload/read-back verification fails.
@@ -384,14 +440,16 @@ The following are not material by themselves:
 - thematic result-set or rank churn without comparable query evidence;
 - `validation_status = not_available` when structural validation passes;
 - an unchanged source limitation already reported in the prior run;
-- an empty but successfully executed HOA/property query;
-- a broad business/workflow-automation result without verified HOA or
-  property-management relevance.
+- an empty but successfully executed project-area query;
+- a broad or ambiguous query result without verified relevance to its recorded
+  `project_area`.
 
 The notification must include:
 
 - New York timestamp and run ID;
 - repository, observed change, and why it matters;
+- for project discovery, the exact `project_area` and the Alex project/use case
+  it may support;
 - confirmed facts separated from inference;
 - direct GitHub URLs;
 - source/query coverage limitations relevant to the material event;
