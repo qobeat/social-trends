@@ -3,7 +3,7 @@
 ## Recommended task settings
 
 - Title: `GitHub Trend Snapshots`
-- Schedule: every hour
+- Schedule: every 4 hours
 - Mode: monitoring/condition watch
 - Output language: Russian
 - Repository: `qobeat/social-trends`
@@ -205,9 +205,32 @@ different sources because each source represents a distinct signal.
 - query_id `solo_saas`:
   `"vertical SaaS" OR "micro SaaS" OR "solo founder"`
 - query_id `business_automation`:
-  `"business automation" OR "HOA management" OR "property management AI" OR "workflow automation"`
+  `"business automation" OR "workflow automation"`
 - Retain at most 10 candidates across both fixed queries.
 - Set `coverage = query_sample`.
+- Do not label these broad automation results as HOA/property-management
+  coverage unless verified repository metadata independently proves that use
+  case.
+
+#### 8. HOA and property-management software
+
+- source_id: `github_search_hoa_property`
+- Method: `github_search_repositories`.
+- query_id `hoa_management`:
+  `"HOA management" OR "homeowners association" OR "community association management" OR "condominium management"`
+- query_id `property_management_software`:
+  `"property management software" OR "property management AI" OR "condo management software" OR "resident portal"`
+- Execute both queries independently with the same rolling cutoff and common
+  qualifiers as every other thematic query.
+- Retain at most 10 candidates across both fixed queries.
+- Set `coverage = query_sample`.
+- A successful query returning zero repositories is `no_data`, not
+  `blocked`. Preserve the zero count without substituting broad workflow
+  automation results.
+- Before treating a repository as an HOA/property signal, use
+  `github_get_repo` and require an explicitly relevant description, topics,
+  or other returned repository metadata. A keyword-only name match is
+  insufficient.
 
 ### Repository verification
 
@@ -360,7 +383,10 @@ The following are not material by themselves:
 - no repository appears in two thematic groups;
 - thematic result-set or rank churn without comparable query evidence;
 - `validation_status = not_available` when structural validation passes;
-- an unchanged source limitation already reported in the prior run.
+- an unchanged source limitation already reported in the prior run;
+- an empty but successfully executed HOA/property query;
+- a broad business/workflow-automation result without verified HOA or
+  property-management relevance.
 
 The notification must include:
 
