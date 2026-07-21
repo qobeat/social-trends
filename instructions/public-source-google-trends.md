@@ -76,6 +76,51 @@ normalized item URL plus topic.
 - A page that loads but exposes no reproducible trends is `no_data`; access
   failure is `blocked`.
 
+### Source-native context and domain classification
+
+Classify context from the Google Trends response already loaded for collection. Do
+not open Explore, Search it, news, article, or other pages merely to classify a
+trend.
+
+- For each captured trend, read at most the first three related queries exposed
+  in its `Trend breakdown`.
+- Store those queries as one compact `native_metrics.context_terms` string
+  separated by ` | `; omit it when no related query is exposed.
+- When the breakdown provides explicit evidence, store:
+  - `native_metrics.domain`: exactly one of `Autos and Vehicles`,
+    `Beauty and Fashion`, `Business and Finance`, `Climate`,
+    `Entertainment`, `Food and Drink`, `Games`, `Health`,
+    `Hobbies and Leisure`, `Jobs and Education`,
+    `Law and Government`, `Other`, `Pets and Animals`, `Politics`,
+    `Science`, `Shopping`, `Sports`, `Technology`, or
+    `Travel and Transportation`;
+  - `native_metrics.subdomain`: a short specific label such as
+    `Film / Marvel`, only when directly supported;
+  - `native_metrics.domain_confidence`: `high`, `medium`, or `unknown`;
+  - `native_metrics.classification_source`:
+    `google_trends_breakdown` or `unclassified`.
+- Use `high` only when at least two related queries independently identify the
+  same entity/domain. Use `medium` for one unambiguous related query. Otherwise
+  use `unknown`, set `classification_source = unclassified`, and do not
+  guess from an ambiguous top-level title.
+- Preserve the exact top-level title in `trend.topic`. Set
+  `trend.canonical_topic` to a specific normalized entity or event only when
+  the breakdown explicitly identifies it; otherwise use the normalized
+  top-level title.
+- Example: `doomsday` plus `doomsday trailer` and
+  `avengers doomsday trailer` becomes canonical topic
+  `Avengers: Doomsday trailer`, domain `Entertainment`, subdomain
+  `Film / Marvel`, confidence `high`.
+- Domain classification describes context only. It is not sentiment,
+  materiality, or an independent source signal.
+- If a trend passes the unusual-signal gate but remains unclassified, at most
+  one exact quoted Web Search may be used solely to explain that alert. Do not
+  store external article content or externally inferred fields in the raw
+  source snapshot. Cite the verification in the alert; if still ambiguous,
+  report domain `unknown`.
+
+A material alert must include the source-native domain/subdomain and canonical
+topic when available.
 ### Unusual-signal gate
 
 Notify only for:
