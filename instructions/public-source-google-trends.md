@@ -5,6 +5,14 @@
 Run one lightweight raw trend-source collection for `google_trends_us`. Do not
 produce a general news digest or sentiment analysis.
 
+### Shared collector contract
+
+Before collection, fetch `instructions/trend-collector-common.md` from
+`qobeat/social-trends@main` and apply it as the governing shared contract.
+Never use a cached copy. If it cannot be fetched, notify Alex in Russian and do
+not collect or write a snapshot. Retain its fetched SHA as
+`common_contract_sha` for run diagnostics. This file defines only the
+source-specific additions and thresholds.
 ### Economy and notification contract
 
 - This task runs every four hours and must remain source-specific.
