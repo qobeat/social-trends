@@ -21,11 +21,19 @@ digest.
 
 ### Goal
 
-Capture the current GitHub Trending lists and newly accelerating repositories in
-Alex's priority domains, save the complete raw snapshot as immutable JSONL in
-`qobeat/social-trends`, and notify Alex in Russian only about material changes
-or collection/storage failures.
+Capture current GitHub Trending lists and newly accelerating public repositories
+in the configured priority domains, save the complete raw snapshot as immutable
+JSONL in `qobeat/social-trends@main`, and notify the user in Russian only about
+material changes or collection/storage failures.
 
+### Shared collector contract
+
+Before collection, fetch `instructions/trend-collector-common.md` from
+`qobeat/social-trends@main` and apply it as the governing shared contract.
+Never use a cached copy. If it cannot be fetched, notify Alex in Russian and do
+not collect or write a snapshot. Retain its fetched SHA as
+`common_contract_sha` for run diagnostics. This file defines only the
+source-specific additions and thresholds.
 ### Required tools
 
 Use only:
@@ -40,6 +48,7 @@ Use only:
    and continue; its absence is not a global task failure.
 3. Connected **GitHub App**:
    - `github_search_repositories` for structured thematic discovery;
+   - `github_search_commits` to locate the immediately prior confirmed snapshot;
    - `github_get_repo` to verify selected repositories;
    - `github_fetch_file` to read the schema, the immediately prior confirmed
      snapshot, and the newly created snapshot;
@@ -58,23 +67,23 @@ that collection or upload succeeded.
 
 1. Get current UTC and America/New_York time.
 2. Set `window.end` to current UTC time.
-3. Set `window.start` to exactly three hours earlier.
-4. Set `lookback_hours = 3`.
+3. Set `window.start` to exactly four hours earlier.
+4. Set `lookback_hours = 4`.
 5. Set:
    - `run_id = github-YYYYMMDDTHHMMSSZ`;
    - `task_id = github-trends-v1`;
    - `collected_at = window.end`.
 
-GitHub's native daily/weekly trends are broader than three hours. Preserve their
-native window and use `freshness = source_window_broader`. The hourly snapshots
-allow later calculation of three-hour rank changes.
+GitHub's native daily/weekly trends are broader than four hours. Preserve their
+native window and use `freshness = source_window_broader`. The four-hour
+snapshots allow later calculation of directly comparable rank changes.
 
 ### Prior-state baseline
 
-1. From the immediately prior task-run context, obtain the exact path of the last
-   snapshot whose upload and read-back were confirmed.
-2. Fetch that exact path from `main` with `github_fetch_file`. Do not guess a
-   path or substitute a non-immediate older snapshot.
+1. Use `github_search_commits` in `qobeat/social-trends` for commit messages
+   beginning `data(github)` and select the latest confirmed collector snapshot.
+2. Fetch that exact snapshot path from `main` with `github_fetch_file`.
+   Repository history, not task-conversation memory, is authoritative.
 3. If no exact prior path is available or read-back fails, record that
    comparison is unavailable and use `trend_state = unknown` for comparisons
    that require it. This does not block collection of the current snapshot.
@@ -102,8 +111,8 @@ Create one immutable file:
 
 ### Stable thematic-query contract
 
-1. Set `search_cutoff_date` to the UTC calendar date seven days before
-   `window.end`, formatted `YYYY-MM-DD`.
+1. Set `query_contract_version = 2`. Set `search_cutoff_date` to the UTC
+   calendar date seven days before `window.end`, formatted `YYYY-MM-DD`.
 2. Execute every configured thematic `query_id` in its listed order, requesting
    at most five results from each query. Replace `<search_cutoff_date>`
    literally and append
@@ -111,8 +120,9 @@ Create one immutable file:
 3. Do not put `sort:updated` or any other undocumented sorting token inside a
    search query.
 4. Treat the rank returned by one GitHub search call as native only to that
-   `query_id`. Store `search_query_id`, the exact rendered `search_query`,
-   `search_result_rank`, and `search_cutoff_date` in `native_metrics`.
+   `query_id`. Store `search_query_id`, `query_contract_version`,
+   `search_result_rank`, and `search_cutoff_date` in `native_metrics`. Never
+   store an exact rendered query in the public snapshot.
 5. Within a thematic source, retain observations in configured `query_id`
    order and then returned search rank. Deduplicate by canonical repository URL,
    keeping the first occurrence, and cap the retained source sample at 10.
@@ -120,9 +130,10 @@ Create one immutable file:
    must not be presented as native ranks.
 6. Never round-robin or otherwise merge several result lists into a synthetic
    native ranking.
-7. Rank/trend comparisons require the same source ID, `query_id`, rendered
-   cutoff date, and native metric. When the rolling cutoff date changes, use
-   `trend_state = unknown` until comparable evidence exists.
+7. Rank/trend comparisons require the same source ID, `query_id`,
+   `query_contract_version`, cutoff date, and native metric. When the rolling
+   cutoff date or contract version changes, use `trend_state = unknown` until
+   comparable evidence exists.
 
 ### Configured source registry
 
@@ -212,9 +223,9 @@ different sources because each source represents a distinct signal.
   coverage unless verified repository metadata independently proves that use
   case.
 
-#### 8. Alex project application tools
+#### 8. Project application tools
 
-- source_id: `github_search_alex_project_apps`
+- source_id: `github_search_project_apps`
 - Method: `github_search_repositories`.
 - Execute every query independently with the shared rolling cutoff and common
   qualifiers. Request at most 2 results per query and retain at most 20
@@ -241,9 +252,8 @@ different sources because each source represents a distinct signal.
   `"HOA management" OR "homeowners association" OR "property management software" OR "resident portal"`
 - Set `coverage = query_sample`.
 - Store `native_metrics.project_area = <query_id>`.
-- Do not copy or expose metadata, files, holdings, orders, strategies, or other
-  content from Alex's private repositories. The snapshot contains only public
-  candidate-repository metadata returned by the configured discovery query.
+- Collect only public candidate-repository metadata returned by the configured
+  discovery query. Never read or store private-project content.
 
 #### 9. AI runtime, evaluation, and development automation
 
@@ -323,7 +333,7 @@ For each repository:
   - `pushed_at`;
   - `native_window`;
   - `search_query_id`;
-  - `search_query`;
+  - `query_contract_version`;
   - `search_result_rank`;
   - `search_cutoff_date`.
 
@@ -346,8 +356,8 @@ Use a directional state only when directly supported:
   and now present again;
 - `unknown`: no directly comparable prior evidence.
 
-Comparisons must use the same source ID, `search_query_id`, exact rendered
-query including cutoff date, native window, and metric. Do not infer
+Comparisons must use the same source ID, `search_query_id`,
+`query_contract_version`, cutoff date, native window, and metric. Do not infer
 acceleration from total stars, repository names, or result-set churn alone.
 
 ### JSONL construction
@@ -398,8 +408,8 @@ Call `github_create_file` with:
 If that path exists, never overwrite it. Report the collision and stop.
 
 After creation, call `github_fetch_file` on the new path from `main`. Verify
-first record ID, last record ID, and non-empty line count. Only then report that
-upload succeeded.
+exact content, first record ID, last record ID, non-empty line count, and final
+newline. Only then report that upload succeeded.
 
 ### Material-update gate
 
@@ -416,7 +426,7 @@ Compare source health with the immediately prior snapshot:
 - for an uninterrupted failure, send at most one escalation at six consecutive
   failed runs and one additional reminder at each multiple of 24 runs.
 
-Notify Alex in Russian only when at least one is true:
+Notify the user in Russian only when at least one is true:
 
 - a repository newly enters the daily top 10;
 - a repository moves at least five daily ranks;
@@ -448,8 +458,8 @@ The notification must include:
 
 - New York timestamp and run ID;
 - repository, observed change, and why it matters;
-- for project discovery, the exact `project_area` and the Alex project/use case
-  it may support;
+- for project discovery, the exact `project_area` and the public use case it may
+  support;
 - confirmed facts separated from inference;
 - direct GitHub URLs;
 - source/query coverage limitations relevant to the material event;
