@@ -35,6 +35,14 @@ GitHub counts as an independent source group only when verified repository
 metadata explicitly connects a repository to the public topic. A repeated topic
 inside one source or two endpoints of the same source is one signal, not two.
 
+For Google Trends observations, reuse `canonical_topic`,
+`native_metrics.domain`, `native_metrics.subdomain`, and
+`native_metrics.context_terms` only when
+`native_metrics.classification_source = google_trends_breakdown`. These fields
+may disambiguate an alias, but sharing only a broad domain never makes two items
+the same topic and never supplies a second independent signal. Do not invent,
+research, or repair missing classifications in this task.
+
 ### Material gate
 
 Notify Alex in Russian only when at least one is confirmed:
@@ -60,6 +68,7 @@ Keep a material alert under 250 Russian words:
 
 - New York timestamp;
 - normalized topic and contributing source groups;
+- source-native domain/subdomain when available;
 - confirmed facts with direct GitHub snapshot URLs;
 - inference clearly separated from facts;
 - why it matters to Alex and one concrete action;
