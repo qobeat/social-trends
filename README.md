@@ -9,6 +9,7 @@ emotion analysis are deferred to a later version.
 
 - [Public/social trends task](instructions/public-trends-task.md)
 - [GitHub trends task](instructions/github-trends-task.md)
+- [Scheduled job prompts](scheduled-jobs/README.md)
 
 Both tasks use only sources that a ChatGPT Scheduled Task can access through
 public Web Search/pages, a guarded unauthenticated public Browser fallback when
