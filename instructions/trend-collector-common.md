@@ -112,6 +112,25 @@ For a source-health alert, `О чём это` must explain that the signal conce
 collector coverage or freshness rather than the popularity of an observed
 topic.
 
+
+Persist the same concise explanation in the immutable JSONL for every signal
+that triggers a user-facing alert:
+
+- on a topic signal, add top-level `signal_context` to the corresponding
+  `trend_observation`;
+- on a source-health signal, add it to the corresponding `source_status`;
+- map `about`, `unusual_reason`, and `alex_implication` to the three
+  user-facing labels, and use `fact_inference_note` when a short boundary
+  between fact and inference is useful;
+- do not add `signal_context` to ordinary non-alert records;
+- do not store article bodies, quotations, comments, private data, or any
+  externally inferred detail that a source-specific public-data rule forbids.
+  In that case persist only the source-supported explanation and use
+  `Не могу подтвердить` for the unsupported part.
+
+The user-facing explanation and stored `signal_context` must not materially
+contradict each other.
+
 ### Conflict rule
 
 If a source-specific instruction conflicts with this file on repository, branch,
