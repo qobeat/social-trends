@@ -129,6 +129,15 @@ trend.
 
 A material alert must include the source-native domain/subdomain and canonical
 topic when available.
+### Self-contained alert contract
+
+Apply the common self-contained material-alert content contract. For a
+topic-level alert, explain the canonical topic in plain language using the
+Google Trends breakdown first. State that search volume measures attention, not
+approval, direction, or practical importance. `Почему это необычно` must name
+the observed rank/volume/growth change rather than merely say that a canonical
+threshold was exceeded.
+
 ### Unusual-signal gate
 
 Notify only for:
