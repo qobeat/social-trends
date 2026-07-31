@@ -65,6 +65,9 @@
     },
     "summary": {
       "$ref": "#/$defs/summary"
+    },
+    "signal_context": {
+      "$ref": "#/$defs/signalContext"
     }
   },
   "allOf": [
@@ -443,6 +446,39 @@
             "failed",
             "not_available"
           ]
+        }
+      }
+    },
+    "signalContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "about",
+        "unusual_reason",
+        "alex_implication"
+      ],
+      "properties": {
+        "about": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 700
+        },
+        "unusual_reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 700
+        },
+        "alex_implication": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 700
+        },
+        "fact_inference_note": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 500
         }
       }
     }
