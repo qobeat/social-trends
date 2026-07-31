@@ -81,6 +81,37 @@ thresholds, but must not weaken or contradict this contract.
 - If collection, storage, and read-back succeed without a material condition,
   emit no user-facing notification.
 
+#### Self-contained material-alert content
+
+Every user-facing material alert must be understandable without opening its
+links. A threshold crossing alone is not an explanation.
+
+Keep the explanatory part short and use these Russian labels:
+
+- `О чём это:` one or two plain-language sentences identifying the event,
+  project, product, risk, or source-health problem. Expand an opaque name or
+  acronym once and state what actually happened.
+- `Почему это необычно:` the exact new condition versus the immediately prior
+  comparable snapshot or canonical threshold. State both sides of the
+  comparison when available.
+- `Что это значит для Alex:` one evidence-bounded practical consequence or
+  action. If no practical consequence is supported, say
+  `Практический эффект для Alex не подтверждён`.
+- Keep confirmed fact separate from inference. Never present rank, score,
+  traffic, stars, or a classifier label as proof of importance, quality,
+  sentiment, or causation.
+- Use source-native metadata already collected first. If that is insufficient,
+  use only the source-specific narrow verification allowance. Never start a
+  broad news sweep merely to make an alert sound complete.
+- If the subject still cannot be identified reliably, say
+  `Не могу подтвердить, о чём именно сигнал` and do not invent context.
+- Keep this explanatory block within 90 Russian words when possible. Snapshot
+  and commit/read-back details may follow separately.
+
+For a source-health alert, `О чём это` must explain that the signal concerns
+collector coverage or freshness rather than the popularity of an observed
+topic.
+
 ### Conflict rule
 
 If a source-specific instruction conflicts with this file on repository, branch,
