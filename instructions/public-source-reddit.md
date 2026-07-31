@@ -131,7 +131,22 @@ Handle failures deterministically:
 - Treat `rising` as a native label, not calculated acceleration.
 - Use `coverage = country` only when the US filter is confirmed; otherwise use
   `community` and record the limitation.
-- Do not store comments, authors, profiles, or full post bodies.
+- Do not store comments, authors, profiles, or full post bodies. The narrow
+  alert-explanation allowance below does not permit storing page or article
+  text.
+
+### Self-contained alert contract
+
+Apply the common self-contained material-alert content contract. If an item has
+already passed the unusual-signal gate but its title and exposed metadata do not
+identify the subject, make at most one Web Search open of that item's exact
+public target URL solely to identify what the item is about. Do not inspect
+comments, follow additional links, run a broad search, quote the body, or store
+article/post content in the snapshot. If the exact page still does not support a
+clear explanation, say `Не могу подтвердить, о чём именно сигнал`.
+
+For stale/blocked alerts, explicitly say that the unusual signal concerns the
+collector's repeated or reduced data coverage, not Reddit audience interest.
 
 ### Unusual-signal gate
 
