@@ -465,6 +465,22 @@ The notification must include:
 - source/query coverage limitations relevant to the material event;
 - snapshot path and upload verification.
 
+### Self-contained alert explanation
+
+Apply the common self-contained material-alert content contract. In addition to
+the fields above, every repository alert must contain:
+
+- `О чём это:` a short description of what the repository actually provides,
+  based on verified public repository metadata;
+- `Почему это необычно:` the directly comparable rank or native-metric change,
+  or the precise source-health event;
+- `Что это значит для Alex:` one bounded use case, risk, or next action,
+  clearly marked as inference.
+
+Never use a repository name, total stars, or search visibility alone as the
+explanation. If verified metadata does not establish the repository's purpose,
+say `Не могу подтвердить назначение проекта` and do not recommend it.
+
 If no material condition exists and storage succeeds, emit no user-facing
 notification. Keep unchanged limitations in the raw JSONL rather than repeating
 them hourly. Do not include sentiment in version 1.
