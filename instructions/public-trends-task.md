@@ -62,6 +62,19 @@ storage alerts; do not duplicate those alerts here.
 
 If the gate is not met, emit no user-facing notification.
 
+### Self-contained explanation contract
+
+Every material alert must stand on its own and use the Russian labels
+`О чём это`, `Почему это необычно`, and `Что это значит для Alex`.
+Explain the normalized topic in plain language, name the contributing source
+groups, and state the exact cross-source change versus the prior comparable
+state. Do not treat simple co-occurrence as meaning, causation, or importance.
+Use only evidence already present in the confirmed snapshots; this correlation
+task must not launch replacement or background research. If the snapshots do
+not establish what the topic is about, say `Не могу подтвердить, о чём именно
+сигнал` and do not infer an action. Keep the explanatory block within 120
+Russian words.
+
 ### Output
 
 Keep a material alert under 250 Russian words:
