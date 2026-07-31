@@ -80,7 +80,23 @@ normalized item URL plus topic.
 - Use `freshness = within_window` only when the exposed age/timestamp is within
   four hours; otherwise use `source_window_broader` or
   `timestamp_unknown`.
-- Do not fetch or store comments or article bodies.
+- Do not fetch or store comments, and never store article bodies. The narrow
+  alert-explanation allowance below permits only one exact target-page check
+  after the unusual gate is met.
+
+### Self-contained alert contract
+
+Apply the common self-contained material-alert content contract. If a story has
+already passed the unusual-signal gate but its title and HN metadata do not
+explain the subject, make at most one Web Search open of the story's exact
+public target URL solely to identify the article/project/event in one or two
+sentences. Do not follow additional links, run a broad search, quote or
+summarize the full article, or store article content in the snapshot. If the
+exact target still does not support a reliable explanation, say
+`Не могу подтвердить, о чём именно сигнал`.
+
+The alert must explain both the subject and the native HN change. Do not send
+only a title, points/comments, and the phrase that a threshold was exceeded.
 
 ### Unusual-signal gate
 
